@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Insights Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --maroon:    #8B1A1A;
+  --maroon-dk: #6B1010;
+  --gold:      #C8922A;
+  --ink:       #1a1a1a;
+  --paper:     #FAFAF7;
+  --offwhite:  #F3F0EA;
+  --border:    #D8D0C0;
+  --muted:     #666;
+  --blue:      #4472C4;
+  --orange:    #ED7D31;
+  --green:     #70AD47;
+  --yellow:    #FFC000;
+  --ltblue:    #5BC0DE;
+  --red:       #FF0000;
+  --purple:    #7030A0;
+  --teal:      #00B0F0;
+  --pink:      #FF69B4;
+  --lime:      #9DC3E6;
+  --brown:     #843C0C;
+  --gray:      #808080;
+  --navy:      #002060;
+}
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: var(--offwhite);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* ── Upload Screen ── */
+#upload-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--maroon);
+  padding: 2rem;
+}
+
+.upload-card {
+  background: var(--paper);
+  border-radius: 12px;
+  padding: 3rem 2.5rem;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.upload-title {
+  font-family: 'Source Serif 4', serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--maroon);
+  margin-bottom: 0.3rem;
+}
+
+.upload-sub {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-bottom: 2.2rem;
+  font-weight: 300;
+}
+
+#drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 2.5rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: var(--offwhite);
+}
+#drop-zone:hover, #drop-zone.drag-over {
+  border-color: var(--maroon);
+  background: #FFF8F8;
+}
+
+.drop-icon { font-size: 2.8rem; margin-bottom: 0.8rem; }
+
+.drop-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 0.4rem;
+}
+.drop-hint { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+
+.btn-upload {
+  background: var(--maroon);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 0.65rem 2rem;
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-upload:hover { background: var(--maroon-dk); }
+
+#file-input { display: none; }
+
+#upload-status {
+  margin-top: 1.2rem;
+  font-size: 0.88rem;
+  color: #2a7a2a;
+  min-height: 1.3rem;
+}
+#upload-status.err { color: #c00; }
+
+/* ── Dashboard ── */
+#dashboard { display: none; }
+
+/* Header */
+.dash-header {
+  background: var(--maroon);
+  padding: 0.9rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.dash-title {
+  font-family: 'Source Serif 4', serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+}
+.dash-meta { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+.header-btns { display: flex; gap: 0.6rem; }
+
+.btn-sm {
+  padding: 0.45rem 1.1rem;
+  border-radius: 6px;
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  color: #fff;
+  background: transparent;
+  transition: all 0.2s;
+}
+.btn-sm:hover { background: rgba(255,255,255,0.15); }
+.btn-sm.gold { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.btn-sm.gold:hover { background: #daa030; }
+
+/* Stats strip */
+.stats-strip {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.stat-box {
+  flex: 1;
+  background: #fff;
+  padding: 1.1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.stat-lbl {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.stat-num {
+  font-family: 'Source Serif 4', serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--maroon);
+  line-height: 1;
+}
+
+/* Viz panels */
+.panels-wrap {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.viz-panel {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+/* Maroon header bar matching PPT */
+.panel-header {
+  background: var(--maroon);
+  padding: 0.75rem 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-title {
+  font-family: 'Source Serif 4', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+.dl-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 5px;
+  color: #fff;
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dl-btn:hover { background: rgba(255,255,255,0.28); }
+
+/* Panel body: table + chart side by side */
+.panel-body {
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+  padding: 1.5rem;
+  gap: 2rem;
+}
+
+/* Gender: centered single chart */
+.panel-body.center {
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 2rem;
+}
+
+.panel-body.center .chart-wrap {
+  width: 420px;
+  height: 380px;
+  max-width: 100%;
+  flex: unset;
+  min-width: unset;
+}
+
+/* Table */
+.data-table {
+  flex: 0 0 auto;
+  min-width: 280px;
+}
+.data-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.data-table th {
+  background: var(--offwhite);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.9rem;
+  font-weight: 700;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--ink);
+}
+.data-table td {
+  border: 1px solid var(--border);
+  padding: 0.42rem 0.9rem;
+  text-align: center;
+  color: var(--ink);
+}
+.data-table tr:last-child td {
+  font-weight: 700;
+  background: var(--offwhite);
+}
+.data-table td:first-child { text-align: left; }
+.data-table th:first-child { text-align: left; }
+
+/* Chart */
+.chart-wrap {
+  flex: 1 1 420px;
+  min-width: 320px;
+  max-width: 560px;
+  position: relative;
+  height: 420px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.chart-wrap canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Gender panel */
+.gender-stats {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.2rem;
+}
+.gender-stat {
+  text-align: center;
+}
+.gender-stat .num {
+  font-family: 'Source Serif 4', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--maroon);
+}
+.gender-stat .lbl {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* Loading */
+#loading {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(139,26,26,0.88);
+  z-index: 999;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.spinner {
+  width: 46px; height: 46px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  margin-bottom: 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-label { color: rgba(255,255,255,0.85); font-size: 0.9rem; }
+
+/* Download modal */
+#dl-modal {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+#dl-modal.open { display: flex; }
+.modal-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+}
+.modal-heading {
+  font-family: 'Source Serif 4', serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  color: var(--maroon);
+}
+.modal-sub { font-size: 0.83rem; color: var(--muted); margin-bottom: 1.4rem; }
+
+.dl-opt {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  transition: all 0.18s;
+}
+.dl-opt:hover { border-color: var(--maroon); background: #FFF8F8; }
+.dl-opt-icon { font-size: 1.4rem; }
+.dl-opt-title { font-weight: 600; font-size: 0.88rem; }
+.dl-opt-desc { font-size: 0.75rem; color: var(--muted); }
+
+.modal-cancel {
+  width: 100%;
+  margin-top: 0.8rem;
+  padding: 0.6rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 6px;
+  font-family: 'Source Sans 3', sans-serif;
+  transition: background 0.15s;
+}
+.modal-cancel:hover { background: var(--offwhite); }
+
+@media (max-width: 700px) {
+  .panel-body { flex-direction: column; }
+  .data-table { min-width: 0; width: 100%; }
+  .chart-wrap canvas { max-height: 300px; }
+  .stats-strip { flex-wrap: wrap; }
+  .stat-box { min-width: 120px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Upload Screen ── -->
+<div id="upload-screen">
+  <div class="upload-card">
+    <h1 class="upload-title">Student Insights</h1>
+    <p class="upload-sub">Upload your student data Excel file to generate visualizations</p>
+    <div id="drop-zone">
+      <div class="drop-icon">📊</div>
+      <p class="drop-label">Drop your Excel file here</p>
+      <p class="drop-hint">Supports .xlsx, .xls, .csv files</p>
+      <button class="btn-upload" onclick="document.getElementById('file-input').click()">Browse File</button>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
+    </div>
+    <p id="upload-status"></p>
+  </div>
+</div>
+
+<!-- ── Loading ── -->
+<div id="loading">
+  <div class="spinner"></div>
+  <p class="loading-label">Analysing data…</p>
+</div>
+
+<!-- ── Dashboard ── -->
+<div id="dashboard">
+  <header class="dash-header">
+    <div>
+      <div class="dash-title">Student Insights Dashboard</div>
+      <div class="dash-meta" id="dash-meta"></div>
+    </div>
+    <div class="header-btns">
+      <button class="btn-sm" onclick="resetApp()">↩ Upload New</button>
+      <button class="btn-sm gold" onclick="openModal()">⬇ Download</button>
+    </div>
+  </header>
+
+  <div class="stats-strip" id="stats-strip"></div>
+
+  <div class="panels-wrap" id="panels-wrap"></div>
+</div>
+
+<!-- ── Download Modal ── -->
+<div id="dl-modal">
+  <div class="modal-box">
+    <p class="modal-heading">Download Visualizations</p>
+    <p class="modal-sub">Choose export format</p>
+
+    <div class="dl-opt" onclick="dlAllPanelsPNG()">
+      <span class="dl-opt-icon">🖼</span>
+      <div>
+        <p class="dl-opt-title">PNG — Each Chart Separately</p>
+        <p class="dl-opt-desc">Downloads each panel as a high-resolution image</p>
+      </div>
+    </div>
+
+    <div class="dl-opt" onclick="dlFullDashboard()">
+      <span class="dl-opt-icon">📄</span>
+      <div>
+        <p class="dl-opt-title">PNG — Full Dashboard</p>
+        <p class="dl-opt-desc">Single screenshot of the entire report</p>
+      </div>
+    </div>
+
+    <div class="dl-opt" onclick="dlCSV()">
+      <span class="dl-opt-icon">📑</span>
+      <div>
+        <p class="dl-opt-title">CSV — Summary Tables</p>
+        <p class="dl-opt-desc">All aggregated data as a spreadsheet</p>
+      </div>
+    </div>
+
+    <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════
+
+// PIE CHART COLORS — matches PPT palette (blue, red, yellow, green, ltblue, orange, purple…)
+const PIE_COLORS = [
+  '#4472C4','#FF0000','#FFC000','#70AD47','#5BC0DE',
+  '#ED7D31','#7030A0','#00B0F0','#FF69B4','#843C0C',
+  '#808080','#002060','#A9D18E','#FFE699','#BDD7EE',
+  '#F4B183','#C55A11','#375623','#833C00'
+];
+
+// State detection keywords (order matters — longer/more specific first)
+const STATE_LIST = [
+  'Andhra Pradesh','Himachal Pradesh','Madhya Pradesh','Uttar Pradesh','Arunachal Pradesh',
+  'Maharashtra','Karnataka','Kerala','Tamil Nadu','Telangana','Odisha','Bihar',
+  'Gujarat','Delhi','Goa','Punjab','Rajasthan','West Bengal','Jharkhand','Assam',
+  'Uttarakhand','Puducherry','Jammu','Ladakh','Chhattisgarh','Haryana',
+  'Manipur','Meghalaya','Mizoram','Nagaland','Tripura','Sikkim'
+];
+
+// Normalize abbreviated / variant state names in output labels
+const STATE_NORMALIZE = {
+  'Himachal': 'Himachal Pradesh',
+};
+
+// Degree course normalization — maps raw excel values → display labels
+const COURSE_NORM_MAP = [
+  { label: 'Engineering / Diploma in Engineering',       patterns: ['engineering','diploma in engineering','b.tech','btech'] },
+  { label: 'B Sc / B Sc Hons / B Sc (Paramedical)',     patterns: ['pure sciences( b sc)','b sc/b sc honours','b sc honours','b sc (paramedical)','b.sc'] },
+  { label: 'Nursing / Pharmacy',                         patterns: ['nursing / pharmacy/pharmd','nursing / pharmacy','pharmacy','nursing'] },
+  { label: 'Medicine (M.B.B.S)',                          patterns: ['medicine (m.b.b.s)'] },
+  { label: 'Ayurvedic / Homeo Medicine',                 patterns: ['ayurvedic /homeo medicine','homeo medicine','ayurvedic','homeo'] },
+  { label: 'BBA / BCom / BCom Hons',                    patterns: ['bba','b.com','bcom'] },
+  { label: 'Arts / Humanities',                          patterns: ['arts / humanities','arts / humanitiesal'] },
+  { label: 'Agriculture',                                patterns: ['agriculture'] },
+  { label: 'Dental Surgery',                             patterns: ['dental surgery'] },
+  { label: 'BCA / BCA Hons',                            patterns: ['bca'] },
+  { label: 'BsMs – Integrated PG',                      patterns: ['bsms-integrated pg','bsms','integrated pg'] },
+  { label: 'CA – Chartered Accountancy',                 patterns: ['ca -chartered accountancy','chartered accountancy','ca foundation'] },
+  { label: 'Law',                                        patterns: ['law'] },
+  { label: 'Veterinary Medicine',                        patterns: ['veterinary'] },
+  { label: 'Naturopathy',                                patterns: ['naturopathy'] },
+];
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let chartInstances = [];
+let exportPanels   = [];   // { id, title }
+let csvBlocks      = [];   // { section, rows }
+let currentFile    = '';
+
+// ═══════════════════════════════════════════════════════
+//  FILE HANDLING
+// ═══════════════════════════════════════════════════════
+const dropZone  = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const statusEl  = document.getElementById('upload-status');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); processFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => processFile(e.target.files[0]));
+
+function processFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xlsx','xls','csv'].includes(ext)) {
+    setStatus('Please upload an Excel (.xlsx / .xls) or CSV file.', true);
+    return;
+  }
+  currentFile = file.name;
+  setStatus('Reading file…');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      let rows;
+      if (ext === 'csv') {
+        const wb = XLSX.read(ev.target.result, { type: 'string' });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      } else {
+        const wb = XLSX.read(ev.target.result, { type: 'array' });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      }
+      if (!rows.length) throw new Error('No data rows found in the file.');
+      showLoading();
+      setTimeout(() => buildDashboard(rows), 100);
+    } catch(err) {
+      hideLoading();
+      setStatus(err.message, true);
+    }
+  };
+  if (ext === 'csv') reader.readAsText(file);
+  else               reader.readAsArrayBuffer(file);
+}
+
+function setStatus(msg, isErr=false) {
+  statusEl.textContent = isErr ? '✗ ' + msg : msg;
+  statusEl.className = isErr ? 'err' : '';
+}
+
+// ═══════════════════════════════════════════════════════
+//  COLUMN DETECTION
+// ═══════════════════════════════════════════════════════
+function detectCol(keys, candidates) {
+  return keys.find(k => candidates.some(c => k.toLowerCase().includes(c.toLowerCase())));
+}
+
+function detectCols(data) {
+  const keys = Object.keys(data[0] || {});
+  return {
+    gender:  detectCol(keys, ['gender','sex']),
+    program: detectCol(keys, ['program','scheme','scholarship','programme']),
+    course:  detectCol(keys, ['degree course','course','stream','degree_course']),
+    state:   detectCol(keys, ['state','province']),
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+//  NORMALISATION HELPERS
+// ═══════════════════════════════════════════════════════
+function extractState(program) {
+  if (!program) return null;
+  const p = String(program);
+  for (const s of STATE_LIST) {
+    if (p.toLowerCase().includes(s.toLowerCase())) return s;
+  }
+  return null;
+}
+
+function normalizeCourse(raw) {
+  if (!raw) return 'Other';
+  const s = String(raw).trim().toLowerCase();
+  for (const entry of COURSE_NORM_MAP) {
+    for (const pat of entry.patterns) {
+      if (s === pat.toLowerCase() || s.includes(pat.toLowerCase())) return entry.label;
+    }
+  }
+  return String(raw).trim(); // unknown — keep as-is
+}
+
+function freqMap(arr) {
+  const m = {};
+  arr.forEach(v => {
+    const k = String(v ?? '').trim();
+    if (k) m[k] = (m[k] || 0) + 1;
+  });
+  return m;
+}
+
+function sortedEntries(m) {
+  return Object.entries(m).sort((a,b) => b[1]-a[1]);
+}
+
+// ═══════════════════════════════════════════════════════
+//  DASHBOARD BUILD
+// ═══════════════════════════════════════════════════════
+function buildDashboard(data) {
+  destroyCharts();
+  exportPanels = [];
+  csvBlocks    = [];
+
+  const cols = detectCols(data);
+  const total = data.length;
+
+  // ── Gender ──────────────────────────────────────────
+  let genderData = null;
+  if (cols.gender) {
+    const raw = data.map(r => String(r[cols.gender] || '').trim());
+    const fm = freqMap(raw);
+    // Normalize to Female / Male / Other
+    const female = sumKeys(fm, /female|woman|girl/i);
+    const male   = sumKeys(fm, /^male$|^m$|^man$/i);
+    const other  = total - female - male;
+    genderData = { female, male, other, total };
+  }
+
+  // ── States ──────────────────────────────────────────
+  let stateEntries = null;
+  if (cols.state) {
+    const raw = data.map(r => String(r[cols.state] || '').trim()).filter(Boolean);
+    stateEntries = sortedEntries(freqMap(raw));
+  } else if (cols.program) {
+    const raw = data.map(r => extractState(r[cols.program])).filter(Boolean);
+    stateEntries = sortedEntries(freqMap(raw));
+  }
+
+  // ── Courses ─────────────────────────────────────────
+  let courseEntries = null;
+  if (cols.course) {
+    const raw = data.map(r => normalizeCourse(r[cols.course])).filter(v => v && v !== 'Other');
+    courseEntries = sortedEntries(freqMap(raw));
+  }
+
+  // ── Stats strip ─────────────────────────────────────
+  const statsEl = document.getElementById('stats-strip');
+  const stateCount = stateEntries ? new Set(stateEntries.map(e=>e[0])).size : '—';
+  statsEl.innerHTML = `
+    <div class="stat-box"><span class="stat-lbl">Total Students</span><span class="stat-num">${total}</span></div>
+    ${genderData ? `
+    <div class="stat-box"><span class="stat-lbl">Female</span><span class="stat-num">${genderData.female}</span></div>
+    <div class="stat-box"><span class="stat-lbl">Male</span><span class="stat-num">${genderData.male}</span></div>
+    ` : ''}
+    ${stateEntries ? `<div class="stat-box"><span class="stat-lbl">States</span><span class="stat-num">${stateCount}</span></div>` : ''}
+    ${courseEntries ? `<div class="stat-box"><span class="stat-lbl">Course Types</span><span class="stat-num">${courseEntries.length}</span></div>` : ''}
+  `;
+
+  document.getElementById('dash-meta').textContent = `${currentFile}  ·  ${total} students`;
+
+  const wrap = document.getElementById('panels-wrap');
+  wrap.innerHTML = '';
+
+  // ── 1. Gender Distribution ───────────────────────────
+  if (genderData) {
+    const labels = ['Female','Male'];
+    const vals   = [genderData.female, genderData.male];
+    if (genderData.other > 0) { labels.push('Other'); vals.push(genderData.other); }
+
+    csvBlocks.push({ section:'Gender Distribution', rows: labels.map((l,i)=>({Gender:l,Students:vals[i]})) });
+
+    const panelId = 'panel-gender';
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="viz-panel" id="${panelId}">
+        <div class="panel-header">
+          <span class="panel-title">Students' Gender Distribution</span>
+          <button class="dl-btn" onclick="dlPanel('${panelId}','Gender_Distribution')">↓ Download PNG</button>
+        </div>
+        <div class="panel-body center">
+          <div class="gender-stats">
+            <div class="gender-stat"><div class="num">${genderData.female}</div><div class="lbl">Female</div></div>
+            <div class="gender-stat"><div class="num">${genderData.male}</div><div class="lbl">Male</div></div>
+            <div class="gender-stat"><div class="num">${genderData.total}</div><div class="lbl">Total</div></div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-gender"></canvas></div>
+        </div>
+      </div>
+    `);
+
+    const inst = new Chart(document.getElementById('chart-gender'), {
+      type: 'pie',
+      data: {
+        labels,
+        datasets: [{ data: vals, backgroundColor: PIE_COLORS.slice(0,vals.length), borderWidth: 1, borderColor: '#fff', hoverOffset: 8 }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { color:'#333', font:{size:13}, padding:16, boxWidth:16 } },
+          tooltip: { callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} (${((ctx.parsed/genderData.total)*100).toFixed(1)}%)`
+          }},
+          datalabels: false
+        }
+      }
+    });
+    chartInstances.push(inst);
+    exportPanels.push({ id: panelId, title: 'Gender_Distribution' });
+  }
+
+  // ── 2. State-wise ────────────────────────────────────
+  if (stateEntries && stateEntries.length) {
+    const stateTotal = stateEntries.reduce((s,e)=>s+e[1],0);
+    const labels = stateEntries.map(e=>e[0]);
+    const vals   = stateEntries.map(e=>e[1]);
+
+    csvBlocks.push({ section:'State-wise Distribution', rows: [...stateEntries.map(([l,c])=>({State:l,Students:c})), {State:'Total',Students:stateTotal}] });
+
+    const tableRows = stateEntries.map(([state,count]) =>
+      `<tr><td>${state}</td><td>${count}</td></tr>`
+    ).join('') + `<tr><td><b>Total</b></td><td><b>${stateTotal}</b></td></tr>`;
+
+    const panelId = 'panel-state';
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="viz-panel" id="${panelId}">
+        <div class="panel-header">
+          <span class="panel-title">Students' State Wise Details</span>
+          <button class="dl-btn" onclick="dlPanel('${panelId}','State_Wise_Details')">↓ Download PNG</button>
+        </div>
+        <div class="panel-body">
+          <div class="data-table">
+            <table>
+              <thead><tr><th>State</th><th>Number of students</th></tr></thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-state"></canvas></div>
+        </div>
+      </div>
+    `);
+
+    // Chart deferred — stored for _buildCharts
+    window._pendingStateChart = { labels, vals, stateTotal, panelId };
+  }
+
+  // ── 3. Degree Course ─────────────────────────────────
+  if (courseEntries && courseEntries.length) {
+    const courseTotal = courseEntries.reduce((s,e)=>s+e[1],0);
+    const labels = courseEntries.map(e=>e[0]);
+    const vals   = courseEntries.map(e=>e[1]);
+
+    csvBlocks.push({ section:'Degree Course Distribution', rows: [...courseEntries.map(([l,c])=>({Course:l,Students:c})), {Course:'Total',Students:courseTotal}] });
+
+    const tableRows = courseEntries.map(([course,count]) =>
+      `<tr><td>${course}</td><td>${count}</td></tr>`
+    ).join('') + `<tr><td><b>Total</b></td><td><b>${courseTotal}</b></td></tr>`;
+
+    const panelId = 'panel-course';
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="viz-panel" id="${panelId}">
+        <div class="panel-header">
+          <span class="panel-title">Students' Degree Course Wise Details</span>
+          <button class="dl-btn" onclick="dlPanel('${panelId}','Degree_Course_Details')">↓ Download PNG</button>
+        </div>
+        <div class="panel-body">
+          <div class="data-table">
+            <table>
+              <thead><tr><th>Course</th><th>Number of Students</th></tr></thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-course"></canvas></div>
+        </div>
+      </div>
+    `);
+
+    // Chart deferred — stored for _buildCharts
+    window._pendingCourseChart = { labels, vals, courseTotal, panelId };
+  }
+
+  // Show dashboard first so containers have real pixel dimensions
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  window.scrollTo(0,0);
+  hideLoading();
+
+  // Two rAF + timeout ensures browser has painted and flex layout is resolved
+  requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(_buildDeferredCharts, 80)));
+}
+
+function _buildDeferredCharts() {
+  const sc = window._pendingStateChart;
+  if (sc) {
+    const inst = new Chart(document.getElementById('chart-state'), {
+      type: 'pie',
+      data: {
+        labels: sc.labels,
+        datasets: [{ data: sc.vals, backgroundColor: PIE_COLORS.slice(0,sc.vals.length), borderWidth:1, borderColor:'#fff', hoverOffset:8 }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position:'right', labels:{ color:'#333', font:{size:12}, padding:12, boxWidth:14 } },
+          tooltip: { callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} (${((ctx.parsed/sc.stateTotal)*100).toFixed(1)}%)`
+          }}
+        }
+      }
+    });
+    chartInstances.push(inst);
+    exportPanels.push({ id: sc.panelId, title: 'State_Wise_Details' });
+    window._pendingStateChart = null;
+  }
+
+  const cc = window._pendingCourseChart;
+  if (cc) {
+    const inst = new Chart(document.getElementById('chart-course'), {
+      type: 'pie',
+      data: {
+        labels: cc.labels,
+        datasets: [{ data: cc.vals, backgroundColor: PIE_COLORS.slice(0,cc.vals.length), borderWidth:1, borderColor:'#fff', hoverOffset:8 }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position:'right', labels:{ color:'#333', font:{size:12}, padding:12, boxWidth:14 } },
+          tooltip: { callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} (${((ctx.parsed/cc.courseTotal)*100).toFixed(1)}%)`
+          }}
+        }
+      }
+    });
+    chartInstances.push(inst);
+    exportPanels.push({ id: cc.panelId, title: 'Degree_Course_Details' });
+    window._pendingCourseChart = null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════
+function sumKeys(map, regex) {
+  return Object.entries(map).filter(([k])=>regex.test(k)).reduce((s,[,v])=>s+v,0);
+}
+
+function destroyCharts() {
+  chartInstances.forEach(c => { try { c.destroy(); } catch(e){} });
+  chartInstances = [];
+}
+
+function resetApp() {
+  destroyCharts();
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('upload-screen').style.display = 'flex';
+  document.getElementById('panels-wrap').innerHTML = '';
+  document.getElementById('stats-strip').innerHTML = '';
+  fileInput.value = '';
+  setStatus('');
+}
+
+function showLoading() { document.getElementById('loading').style.display = 'flex'; }
+function hideLoading() { document.getElementById('loading').style.display = 'none'; }
+
+// ═══════════════════════════════════════════════════════
+//  DOWNLOADS
+// ═══════════════════════════════════════════════════════
+function openModal()  { document.getElementById('dl-modal').classList.add('open'); }
+function closeModal() { document.getElementById('dl-modal').classList.remove('open'); }
+document.getElementById('dl-modal').addEventListener('click', e => { if(e.target===document.getElementById('dl-modal')) closeModal(); });
+
+function dlPanel(panelId, name) {
+  const el = document.getElementById(panelId);
+  html2canvas(el, { scale: 2.5, backgroundColor: '#fff', useCORS: true }).then(canvas => {
+    const a = document.createElement('a');
+    a.download = name + '.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  });
+}
+
+async function dlAllPanelsPNG() {
+  closeModal();
+  for (const p of exportPanels) {
+    await new Promise(res => {
+      const el = document.getElementById(p.id);
+      html2canvas(el, { scale:2.5, backgroundColor:'#fff', useCORS:true }).then(canvas => {
+        const a = document.createElement('a');
+        a.download = p.title + '.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        setTimeout(res, 400);
+      });
+    });
+  }
+}
+
+function dlFullDashboard() {
+  closeModal();
+  const dash = document.getElementById('dashboard');
+  html2canvas(dash, { scale:1.8, backgroundColor:'#F3F0EA', useCORS:true }).then(canvas => {
+    const a = document.createElement('a');
+    a.download = 'Student_Insights_Dashboard.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  });
+}
+
+function dlCSV() {
+  closeModal();
+  let out = '';
+  csvBlocks.forEach(b => {
+    out += '\n' + b.section + '\n';
+    const keys = Object.keys(b.rows[0] || {});
+    out += keys.join(',') + '\n';
+    b.rows.forEach(r => { out += keys.map(k => `"${r[k] ?? ''}"`).join(',') + '\n'; });
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([out], {type:'text/csv'}));
+  a.download = 'Student_Insights_Summary.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
