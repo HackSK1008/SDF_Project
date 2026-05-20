@@ -424,6 +424,53 @@ body {
   .stats-strip { flex-wrap: wrap; }
   .stat-box { min-width: 120px; }
 }
+/* ── Footer ── */
+.site-footer {
+  background: var(--ink);
+  color: rgba(255,255,255,0.55);
+  text-align: center;
+  padding: 2rem 1.5rem;
+  margin-top: 2rem;
+  font-size: 0.82rem;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  border-top: 3px solid var(--maroon);
+}
+
+.footer-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-name {
+  font-family: 'Source Serif 4', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+
+.footer-divider {
+  width: 40px;
+  height: 2px;
+  background: var(--maroon);
+  border-radius: 2px;
+  margin: 0.3rem 0;
+}
+
+.footer-copy {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.4);
+}
+
+.footer-copy span {
+  color: var(--maroon);
+  font-size: 0.85rem;
+}
 </style>
 </head>
 <body>
@@ -442,6 +489,15 @@ body {
     </div>
     <p id="upload-status"></p>
   </div>
+
+  <footer class="site-footer" style="background:rgba(255,255,255,0.04); border-top:3px solid var(--maroon); margin-top:2.5rem; width:100%;">
+    <div class="footer-inner">
+      <div class="footer-name">Sumit Kolpe</div>
+      <div class="footer-divider"></div>
+      <div>Student Insights Dashboard &mdash; All Rights Reserved</div>
+      <div class="footer-copy"><span>&copy;</span> 2025 Sumit Kolpe. Unauthorized reproduction or distribution is strictly prohibited.</div>
+    </div>
+  </footer>
 </div>
 
 <!-- ── Loading ── -->
@@ -466,6 +522,16 @@ body {
   <div class="stats-strip" id="stats-strip"></div>
 
   <div class="panels-wrap" id="panels-wrap"></div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-name">Sumit Kolpe</div>
+      <div class="footer-divider"></div>
+      <div>Student Insights Dashboard &mdash; All Rights Reserved</div>
+      <div class="footer-copy"><span>&copy;</span> 2025 Sumit Kolpe. Unauthorized reproduction or distribution is strictly prohibited.</div>
+    </div>
+  </footer>
+
 </div>
 
 <!-- ── Download Modal ── -->
