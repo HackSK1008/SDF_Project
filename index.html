@@ -1381,8 +1381,8 @@ async function generateAchievementsPPT() {
 
     slide.background = { color: OFFWHITE };
 
-    // Header bar
-    slide.addShape(pres.shapes.RECTANGLE, { x:0, y:0, w:W, h:1.0, fill:{color:MAROON_DK}, line:{color:MAROON_DK} });
+    // Header bar — white background so logos are clearly visible
+    slide.addShape(pres.shapes.RECTANGLE, { x:0, y:0, w:W, h:1.0, fill:{color:'FFFFFF'}, line:{color:'E8E0D0'} });
 
     // Logos
     if (shibulalSrc)  slide.addImage({ data: shibulalSrc,  x:0.3,  y:0.08, w:2.3, h:0.84, sizing:{type:"contain",w:2.3, h:0.84} });
@@ -1419,9 +1419,6 @@ async function generateAchievementsPPT() {
       slide.addText(ach.achievement, { x:textX, y:cardY+2.9, w:textW, h:cardH-2.9-0.18, fontSize:9.5, color:WHITE, fontFace:"Calibri", align:"center", valign:"top", margin:0 });
     });
 
-    // Footer
-    slide.addShape(pres.shapes.RECTANGLE, { x:0, y:H-0.28, w:W, h:0.28, fill:{color:MAROON_DK}, line:{color:MAROON_DK} });
-    slide.addText("© 2025 Sumit Kolpe · Student Insights · All Rights Reserved", { x:0, y:H-0.28, w:W, h:0.28, fontSize:7.5, color:"CCBBAA", align:"center", valign:"middle", fontFace:"Calibri", margin:0 });
   }
 
   buildSlide(top6.slice(0,3));
