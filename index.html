@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="pptxgen.bundle.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1540,7 +1541,6 @@ const CONTENT_TYPES_TMPL = (slideCount) => {
   let overrides = '';
   for (let i = 1; i <= slideCount; i++) {
     overrides += `<Override PartName="/ppt/slides/slide${i}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
-    overrides += `<Override PartName="/ppt/slides/_rels/slide${i}.xml.rels" ContentType="application/vnd.openxmlformats-officedocument.relationships"/>`;
   }
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -1551,6 +1551,7 @@ const CONTENT_TYPES_TMPL = (slideCount) => {
   <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
   <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>
   <Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>
+  <Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
   ${overrides}
 </Types>`;
 };
@@ -1564,9 +1565,9 @@ const PRESENTATION_TMPL = (slideCount) => {
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
   saveSubsetFonts="1">
   <p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst>
+  <p:sldIdLst>${sldIds}</p:sldIdLst>
   <p:sldSz cx="9144000" cy="5143500"/>
   <p:notesSz cx="6858000" cy="9144000"/>
-  <p:sldIdLst>${sldIds}</p:sldIdLst>
 </p:presentation>`;
 };
 
@@ -1584,7 +1585,7 @@ const SLIDE_RELS_TMPL = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/sfpi.png"/>
-  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/vidyadhan.png"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/vidyadhan.jpeg"/>
 </Relationships>`;
 
 const SLIDE_MASTER = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1596,6 +1597,11 @@ const SLIDE_MASTER = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   </p:spTree></p:cSld>
   <p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>
   <p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst>
+  <p:txStyles>
+    <p:titleStyle><a:lvl1pPr algn="ctr"><a:defRPr sz="4400" b="1"><a:latin typeface="Calibri Light"/></a:defRPr></a:lvl1pPr></p:titleStyle>
+    <p:bodyStyle><a:lvl1pPr><a:defRPr sz="3200"><a:latin typeface="Calibri"/></a:defRPr></a:lvl1pPr></p:bodyStyle>
+    <p:otherStyle><a:lvl1pPr><a:defRPr sz="1800"><a:latin typeface="Calibri"/></a:defRPr></a:lvl1pPr></p:otherStyle>
+  </p:txStyles>
 </p:sldMaster>`;
 
 const SLIDE_MASTER_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1672,8 +1678,87 @@ function b64ToUint8(b64) {
   return arr;
 }
 
+function asImageDataUri(data, mimeType) {
+  const raw = String(data || '').includes(',') ? String(data).split(',')[1] : String(data || '');
+  return raw ? `data:${mimeType};base64,${raw}` : '';
+}
+
+function addAchievementCard(slide, pptx, stu, i) {
+  const MAROON = 'A80000', WHITE = 'FFFFFF', GOLD = 'C8922A';
+  const rect = pptx.ShapeType?.rect || 'rect';
+  const ellipse = pptx.ShapeType?.ellipse || 'ellipse';
+  const roundRect = pptx.ShapeType?.roundRect || 'roundRect';
+  const cardX = [0.3375, 3.466, 6.576][i];
+  const cardY = 1.710, cardW = 3.067, cardH = 3.827;
+  const photoH = 1.490;
+  const cx = cardX + cardW / 2;
+
+  slide.addShape(rect, { x: cardX, y: cardY, w: cardW, h: cardH, fill: { color: MAROON }, line: { color: MAROON, transparency: 100 } });
+  slide.addShape(rect, { x: cardX, y: cardY, w: cardW, h: photoH, fill: { color: MAROON }, line: { color: GOLD, dash: 'dash', width: 1 } });
+  slide.addShape(ellipse, { x: cx - 0.18, y: cardY + 0.33, w: 0.36, h: 0.36, fill: { color: GOLD }, line: { color: GOLD, transparency: 100 } });
+  slide.addShape(roundRect, { x: cx - 0.19, y: cardY + 0.73, w: 0.38, h: 0.22, fill: { color: GOLD }, line: { color: GOLD, transparency: 100 } });
+  slide.addText('Student Photo', { x: cardX, y: cardY + 1.05, w: cardW, h: 0.25, color: GOLD, fontFace: 'Century Gothic', fontSize: 10, bold: true, align: 'center', margin: 0 });
+
+  const details = [
+    `Name : ${stu.name}`,
+    `Course : ${stu.course}`,
+    `Institution : ${stu.institution}`,
+    '',
+    stu.achievement,
+  ].join('\n');
+  slide.addText(details, {
+    x: cardX + 0.10, y: cardY + photoH + 0.14, w: cardW - 0.20, h: cardH - photoH - 0.22,
+    color: WHITE, fontFace: 'Times New Roman', fontSize: 12,
+    bold: true, align: 'center', valign: 'top',
+    fit: 'shrink', margin: 0.04,
+  });
+}
+
+async function buildPptxWithLibrary(students) {
+  const PptxCtor = window.pptxgen || window.pptxgenjs || window.PptxGenJS;
+  if (!PptxCtor) throw new Error('PptxGenJS did not load');
+
+  const pptx = new PptxCtor();
+  pptx.author = 'Student Insights Dashboard';
+  pptx.company = 'SFPI';
+  pptx.subject = 'Student Achievements';
+  pptx.title = 'Student Achievements';
+  pptx.defineLayout({ name: 'ACHIEVEMENTS_WIDE', width: 10, height: 5.625 });
+  pptx.layout = 'ACHIEVEMENTS_WIDE';
+
+  const MAROON = 'A80000', WHITE = 'FFFFFF';
+  const rect = pptx.ShapeType?.rect || 'rect';
+  const sfpiLogo = asImageDataUri(window._shibulalLogoB64, 'image/png');
+  const vidyaLogo = asImageDataUri(window._vidyadhanLogoB64, 'image/jpeg');
+
+  for (let s = 0; s < Math.ceil(students.length / 3); s++) {
+    const slide = pptx.addSlide();
+    slide.background = { color: WHITE };
+    slide.addImage({ data: sfpiLogo, x: 0.341, y: 0.090, w: 2.559, h: 0.700 });
+    slide.addImage({ data: vidyaLogo, x: 7.138, y: 0.072, w: 2.585, h: 0.809 });
+    slide.addShape(rect, { x: 0.254, y: 1.040, w: 9.468, h: 0.590, fill: { color: MAROON }, line: { color: MAROON, transparency: 100 } });
+    slide.addText('Student Achievements', {
+      x: 0.35, y: 1.135, w: 9.25, h: 0.34,
+      color: WHITE, fontFace: 'Century Gothic', fontSize: 24.2,
+      bold: true, align: 'left', margin: 0,
+    });
+    students.slice(s * 3, s * 3 + 3).forEach((stu, i) => addAchievementCard(slide, pptx, stu, i));
+  }
+
+  const output = await pptx.write({ outputType: 'blob' });
+  if (output instanceof Blob) return output;
+  return new Blob([output], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+}
+
 // ── Main assembler ───────────────────────────────────────────────────────────
 async function buildPptxBlob(students) {
+  if (window.pptxgen || window.pptxgenjs || window.PptxGenJS) {
+    return await buildPptxWithLibrary(students);
+  }
+  return await buildRawPptxBlob(students);
+}
+
+async function buildRawPptxBlob(students) {
   const zip = new JSZip();
 
   // Logo image data
@@ -1693,7 +1778,7 @@ async function buildPptxBlob(students) {
   zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', SLIDE_LAYOUT_RELS);
   zip.file('ppt/theme/theme1.xml', THEME);
   if (sfpiBytes.length)  zip.file('ppt/media/sfpi.png',      sfpiBytes);
-  if (vidyaBytes.length) zip.file('ppt/media/vidyadhan.png', vidyaBytes);
+  if (vidyaBytes.length) zip.file('ppt/media/vidyadhan.jpeg', vidyaBytes);
 
   // Slides
   for (let s = 0; s < slideCount; s++) {
